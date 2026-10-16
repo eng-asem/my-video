@@ -1,5 +1,5 @@
 import React, {useMemo} from "react";
-import {AbsoluteFill, Easing, Sequence, interpolate, useCurrentFrame} from "remotion";
+import {AbsoluteFill, Audio, Easing, Sequence, interpolate, staticFile, useCurrentFrame} from "remotion";
 import {getLength, getPointAtLength} from "@remotion/paths";
 import {loadFont} from "@remotion/google-fonts/NotoKufiArabic";
 
@@ -14,10 +14,16 @@ const {fontFamily} = loadFont("normal", {
   subsets: ["arabic", "latin"],
 });
 
-const INK = "#14284B"; // القلم الأول
-const RED = "#D2362B"; // القلم الثاني
-const PAPER = "#F1F4F3";
-const GRID = "#D3DCE2";
+// غيّر THEME إلى "light" للعودة للوضع الفاتح
+const THEME: "dark" | "light" = "dark";
+const USE_SFX = true; // المؤثرات الصوتية (شغّل npm run sfx أولًا)
+const USE_VOICEOVER = false; // التعليق الصوتي (شغّل make-voice.sh أو أضف ملفاتك)
+
+const PALETTE = {
+  light: {INK: "#14284B", RED: "#D2362B", PAPER: "#F1F4F3", GRID: "#D3DCE2"},
+  dark: {INK: "#DCE6F2", RED: "#FF6A5C", PAPER: "#0F1A2B", GRID: "#1C2B42"},
+}[THEME];
+const {INK, RED, PAPER, GRID} = PALETTE;
 const W = 1920;
 const H = 1080;
 
@@ -559,6 +565,59 @@ const S6: React.FC = () => {
   );
 };
 
+
+/* ------------------------- المؤثرات والتعليق الصوتي ------------------- */
+
+const Sfx: React.FC<{src: string; at: number; vol?: number}> = ({src, at, vol = 0.4}) => (
+  <Sequence from={at} durationInFrames={90}>
+    <Audio src={staticFile(src)} volume={vol} />
+  </Sequence>
+);
+
+const SceneStarts = [0, 150, 300, 480, 660, 810];
+
+const SfxLayer: React.FC = () => (
+  <>
+    {/* حركة القلم عند بداية كل مشهد */}
+    {SceneStarts.slice(0, 5).map((s) => (
+      <Sfx key={s} src="pen.wav" at={s + 2} vol={0.25} />
+    ))}
+    {/* 1: اللمسة */}
+    <Sfx src="tap.wav" at={75} vol={0.7} />
+    {/* 2: نظام التشغيل */}
+    <Sfx src="tick.wav" at={182} />
+    <Sfx src="ding.wav" at={278} vol={0.5} />
+    {/* 3: انتقال الكتل */}
+    {Array.from({length: 6}).map((_, i) => (
+      <Sfx key={`b${i}`} src="tick.wav" at={355 + i * 14} vol={0.35} />
+    ))}
+    {Array.from({length: 6}).map((_, i) => (
+      <Sfx key={`a${i}`} src="tap.wav" at={391 + i * 14} vol={0.25} />
+    ))}
+    {/* 4: نبضات الساعة */}
+    {Array.from({length: 16}).map((_, i) => (
+      <Sfx key={`c${i}`} src="tick.wav" at={540 + i * 6} vol={0.18} />
+    ))}
+    {/* 5: الإطارات */}
+    {Array.from({length: 10}).map((_, i) => (
+      <Sfx key={`f${i}`} src="tick.wav" at={680 + i * 10} vol={0.22 + i * 0.03} />
+    ))}
+    {/* 6: الخاتمة */}
+    <Sfx src="whoosh.wav" at={810} vol={0.45} />
+    <Sfx src="chime.wav" at={868} vol={0.55} />
+  </>
+);
+
+const Voiceover: React.FC = () => (
+  <>
+    {SceneStarts.map((s, i) => (
+      <Sequence key={s} from={s + 6}>
+        <Audio src={staticFile(`vo${i + 1}.mp3`)} volume={1} />
+      </Sequence>
+    ))}
+  </>
+);
+
 /* ================================ التركيب ============================= */
 
 export const InsidePhone: React.FC = () => (
@@ -571,5 +630,7 @@ export const InsidePhone: React.FC = () => (
     <Sequence from={660} durationInFrames={150}><S5 /></Sequence>
     <Sequence from={810} durationInFrames={90}><S6 /></Sequence>
     <Ruler />
+    {USE_SFX && <SfxLayer />}
+    {USE_VOICEOVER && <Voiceover />}
   </AbsoluteFill>
 );

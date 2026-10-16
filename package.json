@@ -6,7 +6,8 @@
   "scripts": {
     "studio": "remotion studio index.ts",
     "render": "remotion render index.ts InsidePhone out/inside-phone.mp4",
-    "still": "remotion still index.ts InsidePhone out/frame.png --frame=450"
+    "still": "remotion still index.ts InsidePhone out/frame.png --frame=450",
+    "sfx": "node make-sfx.js"
   },
   "dependencies": {
     "@remotion/cli": "4.0.504",
